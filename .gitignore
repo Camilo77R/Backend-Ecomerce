@@ -1,0 +1,63 @@
+#############################
+# Node.js
+#############################
+
+# Dependencias
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# Producción y builds
+dist/
+build/
+coverage/
+.tmp/
+.cache/
+
+#############################
+# Environment variables
+#############################
+
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+
+#############################
+# Sistema Operativo
+#############################
+
+.DS_Store
+Thumbs.db
+
+#############################
+# Editor Config
+#############################
+
+.vscode/
+.idea/
+*.swp
+
+#############################
+# Supabase (si lo usas)
+#############################
+
+# Archivos temporales del CLI de Supabase
+supabase/.temp/
+supabase/.branches/
+supabase/functions/.temp/
+
+#############################
+# Prisma (si lo usas)
+#############################
+
+prisma/.env
+prisma/migrations/*/.tmp
