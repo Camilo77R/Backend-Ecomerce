@@ -1,7 +1,11 @@
 // utils/auth.js
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
-module.exports = (req, res, next) => {
+/**
+ * Middleware para validar JWT
+ * Verifica que el token sea válido antes de acceder a rutas protegidas
+ */
+export const authenticateToken = (req, res, next) => {
   try {
     // Leer token desde el header Authorization: Bearer <token>
     const authHeader = req.headers.authorization;
@@ -26,3 +30,6 @@ module.exports = (req, res, next) => {
     });
   }
 };
+
+// Exportación por defecto (compatibilidad con código antiguo)
+export default authenticateToken;

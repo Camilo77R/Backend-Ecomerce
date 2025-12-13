@@ -1,8 +1,8 @@
-const supabase = require('../services/supabase');
-const jwt = require('jsonwebtoken');
+import supabase from '../services/supabase.js';
+import jwt from 'jsonwebtoken';
 
 // Registro
-exports.registrar = async (req, res) => {
+export const registrar = async (req, res) => {
   try {
     const { email, contraseña } = req.body;
 
@@ -25,7 +25,7 @@ exports.registrar = async (req, res) => {
 };
 
 // Iniciar sesión
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, contraseña } = req.body;
 
