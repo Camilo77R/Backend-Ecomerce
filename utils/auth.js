@@ -1,34 +1,28 @@
-// esto es => Middleware reutilizable
-
- const { error, timeStamp } = require('console');
+// utils/auth.js
 const jwt = require('jsonwebtoken');
 
+module.exports = (req, res, next) => {
+  try {
+    // Leer token desde el header Authorization: Bearer <token>
+    const authHeader = req.headers.authorization;
 
-//  hago un fn de orden superior para la autenticacion 
-const authenticateToken = (req, res, next) =>{
-    const authHeader = req.headers['authorization'] //esto es lo que necesito los header de la peticion tengan
-    const token = authHeader && authHeader.split(' ')[1];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Token no proporcionado" });
+    }
 
-    if(!token){
-        return res.status(401).json({error: 'Access token required'}); //fallo el token de acceso para acceder
-    };
+    const token = authHeader.split(" ")[1];
 
-    jwt.verify(token,process.env.JWT_SECRET,(err, user)=>{
-        req.user = user;
-        next();
-    }); 
+    // Verificar token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Agregar info del usuario al request
+    req.user = decoded;
+
+    next(); // continuar hacia la ruta protegida
+  } catch (error) {
+    return res.status(401).json({
+      error: "Token inválido o expirado",
+      detalles: error.message
+    });
+  }
 };
-
-
-// esto es para crear respuestas concistentes 
-const createResponse = (success,  data, error= null)=>({
-    success,
-    data,
-    error,
-    timeStamp: new Date().toString()
-});
-
-module.exports = {
-    authenticateToken, createResponse
-};
-

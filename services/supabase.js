@@ -1,5 +1,4 @@
-const { createClient } = require('@supabase/supabase.js');
-
+const { createClient } = require("@supabase/supabase-js");
 
 // factory pattern para crear cliente Supabse
 const createSupabaseClient = ()=>{
@@ -9,5 +8,11 @@ const createSupabaseClient = ()=>{
     );
 };
 
+// Inicializar cliente Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
+module.exports = supabase;
 module.exports = createSupabaseClient();
