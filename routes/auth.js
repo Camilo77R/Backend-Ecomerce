@@ -32,8 +32,18 @@ router.get("/perfil", authenticateToken, async (req, res) => {
 // Registro
 router.post("/registrarse", async (req, res) => {
   try {
-    const { email, contraseña } = req.body;
+    const { email, contraseña, nombre, gender } = req.body;
 
+    // Validar datos requeridos
+    if (!email || !contraseña || !nombre) {
+      return res.status(400).json({
+        success: false,
+        error: "Email, contraseña y nombre son obligatorios",
+        code: "MISSING_FIELDS"
+      });
+    }
+
+    // Paso 1: Registrar en Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password: contraseña,
@@ -41,15 +51,48 @@ router.post("/registrarse", async (req, res) => {
 
     if (error) throw error;
 
+    // Paso 2: Crear perfil en tabla users
     const { error: perfilError } = await supabase
       .from("users")
-      .insert([{ id: data.user.id, email }]);
+      .insert([{
+        id: data.user.id,
+        email,
+        name: nombre,
+        gender: gender || null,
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }]);
 
     if (perfilError) throw perfilError;
 
-    res.json({ mensaje: "Usuario registrado exitosamente" });
+    // Paso 3: Generar token JWT
+    const token = jwt.sign(
+      {
+        userId: data.user.id,
+        email: email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({
+      success: true,
+      mensaje: "Usuario registrado exitosamente",
+      token,
+      usuario: {
+        id: data.user.id,
+        email,
+        nombre,
+        gender
+      }
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({
+      success: false,
+      error: error.message,
+      code: "REGISTRATION_ERROR"
+    });
   }
 });
 
@@ -58,6 +101,16 @@ router.post("/iniciar-sesion", async (req, res) => {
   try {
     const { email, contraseña } = req.body;
 
+    // Validar campos requeridos
+    if (!email || !contraseña) {
+      return res.status(400).json({
+        success: false,
+        error: "Email y contraseña son requeridos",
+        code: "MISSING_FIELDS"
+      });
+    }
+
+    // Autenticar en Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password: contraseña,
@@ -65,18 +118,40 @@ router.post("/iniciar-sesion", async (req, res) => {
 
     if (error) throw error;
 
+    // Obtener datos completos del usuario de la tabla users
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (userError) throw userError;
+
+    // Generar token JWT
     const token = jwt.sign(
       {
         userId: data.user.id,
         email: data.user.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }  // 🕐 Token válido por 7 días
+      { expiresIn: "7d" }
     );
 
-    res.json({ token, usuario: data.user });
+    // Eliminar password de la respuesta
+    delete userData.password;
+
+    res.json({
+      success: true,
+      token,
+      usuario: userData,
+      message: "Sesión iniciada correctamente"
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(401).json({
+      success: false,
+      error: error.message || "Credenciales inválidas",
+      code: "LOGIN_ERROR"
+    });
   }
 });
 
