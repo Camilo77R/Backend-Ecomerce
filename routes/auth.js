@@ -1,6 +1,7 @@
 // routes/auth.js
 import express from "express";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import supabase from "../services/supabase.js";
 import { authenticateToken } from "../utils/auth.js";
 import dotenv from "dotenv";
@@ -32,10 +33,12 @@ router.get("/perfil", authenticateToken, async (req, res) => {
 // Registro
 router.post("/registrarse", async (req, res) => {
   try {
-    const { email, contraseña, nombre, gender } = req.body;
+    // Aceptar tanto "contraseña" como "password"
+    const { email, contraseña, password, nombre, gender } = req.body;
+    const passwordFinal = contraseña || password;
 
     // Validar datos requeridos
-    if (!email || !contraseña || !nombre) {
+    if (!email || !passwordFinal || !nombre) {
       return res.status(400).json({
         success: false,
         error: "Email, contraseña y nombre son obligatorios",
@@ -46,18 +49,22 @@ router.post("/registrarse", async (req, res) => {
     // Paso 1: Registrar en Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
-      password: contraseña,
+      password: passwordFinal,
     });
 
     if (error) throw error;
 
-    // Paso 2: Crear perfil en tabla users
+    // Paso 2: Hashear contraseña para guardarla en tabla users
+    const hashedPassword = await bcrypt.hash(passwordFinal, 10);
+
+    // Paso 3: Crear perfil en tabla users
     const { error: perfilError } = await supabase
       .from("users")
       .insert([{
         id: data.user.id,
         email,
         name: nombre,
+        password: hashedPassword,
         gender: gender || null,
         avatar_url: null,
         created_at: new Date().toISOString(),
@@ -66,7 +73,7 @@ router.post("/registrarse", async (req, res) => {
 
     if (perfilError) throw perfilError;
 
-    // Paso 3: Generar token JWT
+    // Paso 4: Generar token JWT
     const token = jwt.sign(
       {
         userId: data.user.id,
@@ -99,10 +106,11 @@ router.post("/registrarse", async (req, res) => {
 // Inicio de sesión
 router.post("/iniciar-sesion", async (req, res) => {
   try {
-    const { email, contraseña } = req.body;
+    const { email, contraseña, password } = req.body;
+    const passwordFinal = contraseña || password;
 
     // Validar campos requeridos
-    if (!email || !contraseña) {
+    if (!email || !passwordFinal) {
       return res.status(400).json({
         success: false,
         error: "Email y contraseña son requeridos",
@@ -113,7 +121,7 @@ router.post("/iniciar-sesion", async (req, res) => {
     // Autenticar en Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password: contraseña,
+      password: passwordFinal,
     });
 
     if (error) throw error;
