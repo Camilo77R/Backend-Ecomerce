@@ -41,8 +41,8 @@ router.get('/', ProductController.getProducts);
  * 🛡️ Flujo de seguridad:  
  * Cliente → POST /api/products → authenticateToken → ProductController.createProduct → Respuesta  
  */  
-router.post('/', authenticateToken, ProductController.createProduct);  
-  
+router.post('/', ProductController.createProduct);
+
 /**  
  * ✏️ Ruta: "Actualizar Producto"  
  *   
@@ -52,7 +52,7 @@ router.post('/', authenticateToken, ProductController.createProduct);
  *   
  * 🎯 :id es un parámetro que captura el ID del producto  
  */  
-router.put('/:id', authenticateToken, ProductController.updateProduct);  
+router.put('/:id',  ProductController.updateProduct);  
   
 /**  
  * 🗑️ Ruta: "Eliminar Producto"  
@@ -61,7 +61,7 @@ router.put('/:id', authenticateToken, ProductController.updateProduct);
  * 🔒 ¿Por qué privada? Solo usuarios autenticados pueden eliminar  
  * 📍 URL: DELETE /api/products/:id  
  */  
-router.delete('/:id', authenticateToken, ProductController.deleteProduct);  
+router.delete('/:id', ProductController.deleteProduct);  
   
 // 📤 Exportar el menú completo  
 export default router;

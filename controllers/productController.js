@@ -221,47 +221,73 @@ class ProductController {
         updateData.quantity = parseInt(quantity) || 1;  
       }  
   
-      // 💾 Actualizar en base de datos  
-      const { data, error } = await supabase  
-        .from('products')  
-        .update(updateData)  
-        .eq('id', id)  
-        .select()  
-        .single();  
+      console.log('🔄 Actualizando producto ID:', id);
+      console.log('📦 Datos a actualizar:', updateData);
   
-      // 🚨 Manejo de errores  
-      if (error) {  
-        console.error('🔥 Error updating product:', error);  
-        return res.status(500).json({   
-          success: false,   
-          error: 'Error al actualizar el producto',  
-          details: error.message   
-        });  
-      }  
+      // 💾 ACTUALIZAR EN BASE DE DATOS - PASO 1: HACER EL UPDATE
+      const { error: updateError } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', id);
   
-      // 🚨 Verificar si el producto existía  
-      if (!data) {  
-        return res.status(404).json({   
-          success: false,   
-          error: 'Producto no encontrado',  
-          code: 'PRODUCT_NOT_FOUND'  
-        });  
-      }  
+      // 🚨 Manejo de errores del UPDATE
+      if (updateError) {
+        console.error('🔥 Error updating product:', updateError);
+        return res.status(500).json({
+          success: false,
+          error: 'Error al actualizar el producto',
+          details: updateError.message,
+          hint: updateError.hint || 'Verificar la consulta'
+        });
+      }
   
-      // ✅ Éxito  
-      res.json({   
-        success: true,   
-        data: data,  
-        message: '✅ Producto actualizado exitosamente',  
-        timestamp: new Date().toISOString()  
-      });  
-    } catch (error) {  
-      console.error('💥 Unexpected error in updateProduct:', error);  
-      res.status(500).json({   
-        success: false,   
-        error: 'Error interno del servidor'   
-      });  
-    }  
+      console.log('✅ UPDATE exitoso, obteniendo producto actualizado...');
+  
+      // 📥 OBTENER PRODUCTO ACTUALIZADO - PASO 2: HACER SELECT
+      const { data, error: selectError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+  
+      // 🚨 Manejo de errores del SELECT
+      if (selectError) {
+        console.error('⚠️ Error fetching updated product:', selectError);
+        // El UPDATE funcionó, pero no pudimos obtener el producto actualizado
+        return res.json({
+          success: true,
+          message: '✅ Producto actualizado exitosamente',
+          warning: 'No se pudo obtener el producto actualizado',
+          timestamp: new Date().toISOString()
+        });
+      }
+  
+      // 🚨 Verificar si el producto existe
+      if (!data) {
+        return res.status(404).json({
+          success: false,
+          error: 'Producto no encontrado',
+          code: 'PRODUCT_NOT_FOUND'
+        });
+      }
+  
+      console.log('🎉 Producto actualizado correctamente:', data.name);
+  
+      // ✅ Éxito
+      res.json({
+        success: true,
+        data: data,
+        message: '✅ Producto actualizado exitosamente',
+        timestamp: new Date().toISOString()
+      });
+  
+    } catch (error) {
+      console.error('💥 Unexpected error in updateProduct:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor'
+      });
+    }
   }  
   
   /**  
