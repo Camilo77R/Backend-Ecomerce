@@ -272,7 +272,7 @@ router.put("/perfil", authenticateToken, async (req, res) => {
       .from('users')
       .update(updateData)
       .eq('id', userId)
-      .select()
+      .select('id, name, email, gender, avatar_url, created_at, updated_at')
       .single();
 
     // 🚨 Manejar errores de base de datos
@@ -295,7 +295,7 @@ router.put("/perfil", authenticateToken, async (req, res) => {
       });
     }
 
-    // ✅ Éxito - Retornar usuario actualizado
+    // ✅ Éxito - Retornar usuario actualizado COMPLETO
     res.json({
       success: true,
       message: '✅ Perfil actualizado exitosamente',
