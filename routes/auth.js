@@ -343,8 +343,8 @@ router.put("/perfil", authenticateToken, async (req, res) => {
  */
 router.delete("/perfil", authenticateToken, async (req, res) => {
   try {
-    // 📦 Extraer contraseña del body (para confirmar que es el usuario real)
-    const { contraseña } = req.body;
+    // 📦 Extraer contraseña del body (aceptar ambos "contraseña" y "password")
+    const contraseña = req.body.contraseña || req.body.password;
 
     // 🆔 Obtener el ID y email del usuario desde el token
     const userId = req.user.userId;
