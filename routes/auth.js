@@ -17,17 +17,47 @@ const router = express.Router();
  * 📍 URL: GET /api/auth/perfil
  * 
  * ¿Qué hace?
- * - Retorna la información del usuario actualmente autenticado
+ * - Retorna la información COMPLETA del usuario desde la base de datos
  * - El token se valida automáticamente por el middleware authenticateToken
  * 
  * Flujo:
- * Flutter envía token → Middleware valida → Retorna datos del usuario
+ * Flutter envía token → Middleware valida → 
+ * Backend obtiene datos de BD → Retorna datos completos del usuario
  */
 router.get("/perfil", authenticateToken, async (req, res) => {
-  res.json({
-    mensaje: "Accediste al perfil",
-    usuario: req.user,
-  });
+  try {
+    const userId = req.user.userId;
+
+    // Obtener datos COMPLETOS del usuario desde la tabla users
+    const { data: usuario, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error || !usuario) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    // No devolver la contraseña
+    delete usuario.password;
+
+    res.json({
+      success: true,
+      mensaje: "Accediste al perfil",
+      usuario: usuario,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: 'SERVER_ERROR'
+    });
+  }
 });
 
 // Registro
