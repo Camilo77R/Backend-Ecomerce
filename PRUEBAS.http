@@ -1,0 +1,84 @@
+// PRUEBAS DE AUTENTICACIÓN
+// Ejecuta estas requests en Postman o Thunder Client
+
+// ========== 1. REGISTRO DE USUARIO ==========
+POST http://localhost:3000/api/auth/registrarse
+Content-Type: application/json
+
+{
+  "nombre": "Juan Pérez",
+  "email": "juan@ejemplo.com",
+  "contraseña": "Password123",
+  "gender": "male"
+}
+
+// Respuesta esperada:
+{
+  "success": true,
+  "mensaje": "Usuario registrado exitosamente",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "usuario": {
+    "id": "uuid-del-usuario",
+    "email": "juan@ejemplo.com",
+    "nombre": "Juan Pérez",
+    "gender": "male"
+  }
+}
+
+// ========== 2. INICIAR SESIÓN ==========
+POST http://localhost:3000/api/auth/iniciar-sesion
+Content-Type: application/json
+
+{
+  "email": "juan@ejemplo.com",
+  "contraseña": "Password123"
+}
+
+// Respuesta esperada:
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "usuario": {
+    "id": "uuid-del-usuario",
+    "name": "Juan Pérez",
+    "email": "juan@ejemplo.com",
+    "gender": "male",
+    "avatar_url": null,
+    "created_at": "2025-12-17...",
+    "updated_at": "2025-12-17..."
+  },
+  "message": "Sesión iniciada correctamente"
+}
+
+// ========== 3. VER PERFIL (PROTEGIDO) ==========
+GET http://localhost:3000/api/auth/perfil
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+// Respuesta esperada:
+{
+  "mensaje": "Accediste al perfil",
+  "usuario": {
+    "userId": "uuid-del-usuario",
+    "email": "juan@ejemplo.com"
+  }
+}
+
+// ========== 4. ACTUALIZAR PERFIL (PROTEGIDO) ==========
+PUT http://localhost:3000/api/auth/perfil
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "nombre": "Juan Carlos Pérez",
+  "gender": "male"
+}
+
+// ========== 5. ELIMINAR CUENTA (PROTEGIDO) ==========
+DELETE http://localhost:3000/api/auth/perfil
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "contraseña": "Password123"
+}

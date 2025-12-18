@@ -1,6 +1,7 @@
 // routes/auth.js
 import express from "express";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import supabase from "../services/supabase.js";
 import { authenticateToken } from "../utils/auth.js";
 import dotenv from "dotenv";
@@ -16,67 +17,179 @@ const router = express.Router();
  * 📍 URL: GET /api/auth/perfil
  * 
  * ¿Qué hace?
- * - Retorna la información del usuario actualmente autenticado
+ * - Retorna la información COMPLETA del usuario desde la base de datos
  * - El token se valida automáticamente por el middleware authenticateToken
  * 
  * Flujo:
- * Flutter envía token → Middleware valida → Retorna datos del usuario
+ * Flutter envía token → Middleware valida → 
+ * Backend obtiene datos de BD → Retorna datos completos del usuario
  */
 router.get("/perfil", authenticateToken, async (req, res) => {
-  res.json({
-    mensaje: "Accediste al perfil",
-    usuario: req.user,
-  });
+  try {
+    const userId = req.user.userId;
+
+    // Obtener datos COMPLETOS del usuario desde la tabla users
+    const { data: usuario, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error || !usuario) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    // No devolver la contraseña
+    delete usuario.password;
+
+    res.json({
+      success: true,
+      mensaje: "Accediste al perfil",
+      usuario: usuario,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: 'SERVER_ERROR'
+    });
+  }
 });
 
 // Registro
 router.post("/registrarse", async (req, res) => {
   try {
-    const { email, contraseña } = req.body;
+    // Aceptar tanto "contraseña" como "password"
+    const { email, contraseña, password, nombre, gender } = req.body;
+    const passwordFinal = contraseña || password;
 
+    // Validar datos requeridos
+    if (!email || !passwordFinal || !nombre) {
+      return res.status(400).json({
+        success: false,
+        error: "Email, contraseña y nombre son obligatorios",
+        code: "MISSING_FIELDS"
+      });
+    }
+
+    // Paso 1: Registrar en Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
-      password: contraseña,
+      password: passwordFinal,
     });
 
     if (error) throw error;
 
+    // Paso 2: Hashear contraseña para guardarla en tabla users
+    const hashedPassword = await bcrypt.hash(passwordFinal, 10);
+
+    // Paso 3: Crear perfil en tabla users
     const { error: perfilError } = await supabase
       .from("users")
-      .insert([{ id: data.user.id, email }]);
+      .insert([{
+        id: data.user.id,
+        email,
+        name: nombre,
+        password: hashedPassword,
+        gender: gender || null,
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }]);
 
     if (perfilError) throw perfilError;
 
-    res.json({ mensaje: "Usuario registrado exitosamente" });
+    // Paso 4: Generar token JWT
+    const token = jwt.sign(
+      {
+        userId: data.user.id,
+        email: email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({
+      success: true,
+      mensaje: "Usuario registrado exitosamente",
+      token,
+      usuario: {
+        id: data.user.id,
+        email,
+        nombre,
+        gender
+      }
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({
+      success: false,
+      error: error.message,
+      code: "REGISTRATION_ERROR"
+    });
   }
 });
 
 // Inicio de sesión
 router.post("/iniciar-sesion", async (req, res) => {
   try {
-    const { email, contraseña } = req.body;
+    const { email, contraseña, password } = req.body;
+    const passwordFinal = contraseña || password;
 
+    // Validar campos requeridos
+    if (!email || !passwordFinal) {
+      return res.status(400).json({
+        success: false,
+        error: "Email y contraseña son requeridos",
+        code: "MISSING_FIELDS"
+      });
+    }
+
+    // Autenticar en Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password: contraseña,
+      password: passwordFinal,
     });
 
     if (error) throw error;
 
+    // Obtener datos completos del usuario de la tabla users
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (userError) throw userError;
+
+    // Generar token JWT
     const token = jwt.sign(
       {
         userId: data.user.id,
         email: data.user.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }  // 🕐 Token válido por 7 días
+      { expiresIn: "7d" }
     );
 
-    res.json({ token, usuario: data.user });
+    // Eliminar password de la respuesta
+    delete userData.password;
+
+    res.json({
+      success: true,
+      token,
+      usuario: userData,
+      message: "Sesión iniciada correctamente"
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(401).json({
+      success: false,
+      error: error.message || "Credenciales inválidas",
+      code: "LOGIN_ERROR"
+    });
   }
 });
 
@@ -150,7 +263,7 @@ router.put("/perfil", authenticateToken, async (req, res) => {
     };
 
     if (email) updateData.email = email;
-    if (nombre) updateData.nombre = nombre.trim();
+    if (nombre) updateData.name = nombre.trim(); // ← Cambiar de 'nombre' a 'name'
     if (telefono) updateData.telefono = telefono;
     if (direccion) updateData.direccion = direccion.trim();
 
@@ -159,7 +272,7 @@ router.put("/perfil", authenticateToken, async (req, res) => {
       .from('users')
       .update(updateData)
       .eq('id', userId)
-      .select()
+      .select('id, name, email, gender, avatar_url, created_at, updated_at')
       .single();
 
     // 🚨 Manejar errores de base de datos
@@ -182,7 +295,7 @@ router.put("/perfil", authenticateToken, async (req, res) => {
       });
     }
 
-    // ✅ Éxito - Retornar usuario actualizado
+    // ✅ Éxito - Retornar usuario actualizado COMPLETO
     res.json({
       success: true,
       message: '✅ Perfil actualizado exitosamente',
@@ -230,8 +343,15 @@ router.put("/perfil", authenticateToken, async (req, res) => {
  */
 router.delete("/perfil", authenticateToken, async (req, res) => {
   try {
-    // 📦 Extraer contraseña del body (para confirmar que es el usuario real)
-    const { contraseña } = req.body;
+    // 📦 LOG DETALLADO para debugging
+    console.log('🔍 DELETE /perfil - Body completo:', req.body);
+    console.log('🔍 DELETE /perfil - Keys en body:', Object.keys(req.body));
+    console.log('🔍 DELETE /perfil - req.body.password:', req.body.password);
+    console.log('🔍 DELETE /perfil - req.body.contraseña:', req.body.contraseña);
+
+    // 📦 Extraer contraseña del body (aceptar ambos "contraseña" y "password")
+    const contraseña = req.body.contraseña || req.body.password;
+    console.log('🔍 DELETE /perfil - contraseña extraída:', contraseña ? '✅ Sí' : '❌ No');
 
     // 🆔 Obtener el ID y email del usuario desde el token
     const userId = req.user.userId;
@@ -239,6 +359,7 @@ router.delete("/perfil", authenticateToken, async (req, res) => {
 
     // 🛡️ Validación: la contraseña es requerida
     if (!contraseña) {
+      console.error('❌ ERROR: Contraseña no proporcionada');
       return res.status(400).json({
         success: false,
         error: 'La contraseña es requerida para eliminar la cuenta',
