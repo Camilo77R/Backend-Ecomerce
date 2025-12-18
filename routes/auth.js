@@ -233,7 +233,7 @@ router.put("/perfil", authenticateToken, async (req, res) => {
     };
 
     if (email) updateData.email = email;
-    if (nombre) updateData.nombre = nombre.trim();
+    if (nombre) updateData.name = nombre.trim(); // ← Cambiar de 'nombre' a 'name'
     if (telefono) updateData.telefono = telefono;
     if (direccion) updateData.direccion = direccion.trim();
 
