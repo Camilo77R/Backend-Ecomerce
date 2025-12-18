@@ -69,3 +69,27 @@ supabase/functions/.temp/
 
 prisma/.env
 prisma/migrations/*/.tmp
+
+#############################
+# Flutter
+#############################
+
+# Dependencias
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+
+# Builds y outputs
+build/
+ios/
+android/
+macos/
+windows/
+linux/
+web/
+
+# Archivos generados
+.generated/
+flutter_gen/
