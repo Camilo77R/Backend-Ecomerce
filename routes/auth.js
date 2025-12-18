@@ -343,8 +343,15 @@ router.put("/perfil", authenticateToken, async (req, res) => {
  */
 router.delete("/perfil", authenticateToken, async (req, res) => {
   try {
+    // 📦 LOG DETALLADO para debugging
+    console.log('🔍 DELETE /perfil - Body completo:', req.body);
+    console.log('🔍 DELETE /perfil - Keys en body:', Object.keys(req.body));
+    console.log('🔍 DELETE /perfil - req.body.password:', req.body.password);
+    console.log('🔍 DELETE /perfil - req.body.contraseña:', req.body.contraseña);
+
     // 📦 Extraer contraseña del body (aceptar ambos "contraseña" y "password")
     const contraseña = req.body.contraseña || req.body.password;
+    console.log('🔍 DELETE /perfil - contraseña extraída:', contraseña ? '✅ Sí' : '❌ No');
 
     // 🆔 Obtener el ID y email del usuario desde el token
     const userId = req.user.userId;
@@ -352,6 +359,7 @@ router.delete("/perfil", authenticateToken, async (req, res) => {
 
     // 🛡️ Validación: la contraseña es requerida
     if (!contraseña) {
+      console.error('❌ ERROR: Contraseña no proporcionada');
       return res.status(400).json({
         success: false,
         error: 'La contraseña es requerida para eliminar la cuenta',
