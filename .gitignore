@@ -4,6 +4,9 @@
 
 # Dependencias
 node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Logs
 npm-debug.log*
@@ -19,6 +22,7 @@ build/
 coverage/
 .tmp/
 .cache/
+out/
 
 #############################
 # Environment variables
@@ -37,6 +41,11 @@ coverage/
 
 .DS_Store
 Thumbs.db
+*.bak
+*~
+*.swp~
+.AppleDouble
+.LSOverride
 
 #############################
 # Editor Config
@@ -45,6 +54,14 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+*.iml
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
 
 #############################
 # Test Files
@@ -53,6 +70,13 @@ Thumbs.db
 test-*.js
 *.test.js
 __tests__/
+
+#############################
+# HTTP Cliente de VS Code
+#############################
+
+*.http.env
+.rest/
 
 #############################
 # Supabase (si lo usas)
